@@ -2,7 +2,9 @@ from aws_cdk import (
     Stack,
     aws_dynamodb as dynamodb,
     aws_lambda as _lambda,
+    aws_apigateway as apigw,
     RemovalPolicy,
+    CfnOutput,
 )
 from constructs import Construct
 
@@ -54,4 +56,28 @@ class UrlShortenerCdkStack(Stack):
         mappings_table.grant_read_write_data(shorten_lambda)
         mappings_table.grant_read_data(redirect_lambda)
         counters_table.grant_write_data(shorten_lambda)
+
+        # API Gateway
+        api = apigw.RestApi(
+            self, "UrlShortenerApi",
+            deploy_options=apigw.StageOptions(stage_name="prod"),
+        )
+
+        # /urls POST
+        urls = api.root.add_resource("urls")
+        urls.add_method(
+            "POST",
+            apigw.LambdaIntegration(shorten_lambda),
+        )
+
+        # /{short_code} GET
+        short = api.root.add_resource("{short_code}")
+        short.add_method(
+            "GET",
+            apigw.LambdaIntegration(redirect_lambda),
+        )
+
+        # Outputs
+        CfnOutput(self, "ApiEndpoint", value=api.url)
+
 
