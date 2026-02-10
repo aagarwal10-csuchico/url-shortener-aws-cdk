@@ -1,6 +1,7 @@
 from aws_cdk import (
     Stack,
     aws_dynamodb as dynamodb,
+    aws_lambda as _lambda,
     RemovalPolicy,
 )
 from constructs import Construct
@@ -25,4 +26,20 @@ class UrlShortenerCdkStack(Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             removal_policy=RemovalPolicy.DESTROY,
         )
+
+        # Lambdas
+        shorten_lambda = _lambda.Function(
+            self, "ShortenUrl",
+            runtime=_lambda.Runtime.PYTHON_3_12,
+            handler="handler.lambda_handler",
+            code=_lambda.Code.from_asset("lambdas/shorten"),
+            environment={
+                "MAPPINGS_TABLE": mappings_table.table_name,
+                "COUNTERS_TABLE": counters_table.table_name,
+            },
+        )
+
+        # Grant permissions
+        mappings_table.grant_read_write_data(shorten_lambda)
+        counters_table.grant_write_data(shorten_lambda)
 
