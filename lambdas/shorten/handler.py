@@ -2,10 +2,11 @@ import json
 import boto3
 import urllib.parse
 import time
+import os
 
 dynamodb = boto3.resource('dynamodb')
-mappings_table = dynamodb.Table('UrlMappings')
-counters_table = dynamodb.Table('Counters')
+mappings_table = dynamodb.Table(os.environ["MAPPINGS_TABLE"])
+counters_table = dynamodb.Table(os.environ["COUNTERS_TABLE"])
 
 BASE62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 

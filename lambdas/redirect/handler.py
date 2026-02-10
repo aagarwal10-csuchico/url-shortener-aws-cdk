@@ -1,9 +1,10 @@
 import json
 import boto3
 import time
+import os
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('UrlMappings')
+table = dynamodb.Table(os.environ["MAPPINGS_TABLE"])
 
 def lambda_handler(event, context):
     short_code = event['pathParameters']['short_code']
