@@ -39,7 +39,19 @@ class UrlShortenerCdkStack(Stack):
             },
         )
 
+        redirect_lambda = _lambda.Function(
+            self, "RedirectUrl",
+            runtime=_lambda.Runtime.PYTHON_3_12,
+            handler="handler.lambda_handler",
+            code=_lambda.Code.from_asset("lambdas/redirect"),
+            environment={
+                "MAPPINGS_TABLE": mappings_table.table_name,
+                "COUNTERS_TABLE": counters_table.table_name,
+            },
+        )
+
         # Grant permissions
         mappings_table.grant_read_write_data(shorten_lambda)
+        mappings_table.grant_read_data(redirect_lambda)
         counters_table.grant_write_data(shorten_lambda)
 
