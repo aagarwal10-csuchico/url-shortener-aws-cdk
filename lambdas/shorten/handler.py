@@ -78,5 +78,7 @@ def lambda_handler(event, context):
     })
 
     domain = event['requestContext']['domainName']
-    short_url = f"https://{domain}/{short_code}"
+    stage = event["requestContext"].get("stage", "")
+    prefix = f"/{stage}" if stage and stage != "$default" else ""
+    short_url = f"https://{domain}{prefix}/{short_code}"
     return {'statusCode': 201, 'body': json.dumps({'short_url': short_url})}
