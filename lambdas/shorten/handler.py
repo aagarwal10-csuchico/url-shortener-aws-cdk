@@ -41,7 +41,8 @@ def lambda_handler(event, context):
         # Atomic increment counter
         update_response = counters_table.update_item(
             Key={'counter_id': 'url_counter'},
-            UpdateExpression='ADD value :inc',
+            UpdateExpression='ADD #val :inc',
+            ExpressionAttributeNames={'#val': 'value'},
             ExpressionAttributeValues={':inc': 1},
             ReturnValues='UPDATED_NEW'
         )
