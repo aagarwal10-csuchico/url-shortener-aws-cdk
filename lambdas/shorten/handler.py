@@ -15,9 +15,10 @@ def encode_base62(num):
     if num == 0:
         return BASE62[0]
     arr = []
+    base = 62
     while num:
-        num, rem = divmod(num, 62)
-        arr.append(BASE62[rem])
+        num, rem = divmod(num, base)
+        arr.append(BASE62[int(rem)])
     arr.reverse()
     return ''.join(arr)
 
@@ -60,7 +61,7 @@ def lambda_handler(event, context):
             ExpressionAttributeValues={':inc': 1},
             ReturnValues='UPDATED_NEW'
         )
-        counter_value = update_response['Attributes']['value']
+        counter_value = int(update_response['Attributes']['value'])
         short_code = encode_base62(counter_value)
 
     # Calculate expiration (Unix timestamp)
