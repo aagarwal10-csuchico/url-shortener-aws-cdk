@@ -3,6 +3,7 @@ import boto3
 import urllib.parse
 import time
 import os
+from botocore.exceptions import ClientError
 
 dynamodb = boto3.resource('dynamodb')
 mappings_table = dynamodb.Table(os.environ["MAPPINGS_TABLE"])
@@ -19,6 +20,16 @@ def encode_base62(num):
         arr.append(BASE62[rem])
     arr.reverse()
     return ''.join(arr)
+
+def ensure_counter_exists():
+    try:
+        counters_table.put_item(
+            Item={"counter_id": "url_counter", "value": 0},
+            ConditionExpression="attribute_not_exists(counter_id)",
+        )
+    except ClientError as e:
+        if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
+            raise
 
 def lambda_handler(event, context):
     body = json.loads(event['body'])
@@ -39,6 +50,8 @@ def lambda_handler(event, context):
             return {'statusCode': 409, 'body': json.dumps({'error': 'Custom alias taken'})}
         short_code = custom_alias
     else:
+        ensure_counter_exists()
+
         # Atomic increment counter
         update_response = counters_table.update_item(
             Key={'counter_id': 'url_counter'},
