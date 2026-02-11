@@ -5,6 +5,16 @@ import time
 import os
 from botocore.exceptions import ClientError
 
+def make_response(status_code, body_dict):
+    return {
+        "statusCode": status_code,
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        },
+        "body": json.dumps(body_dict),
+    }
+
 dynamodb = boto3.resource('dynamodb')
 mappings_table = dynamodb.Table(os.environ["MAPPINGS_TABLE"])
 counters_table = dynamodb.Table(os.environ["COUNTERS_TABLE"])
@@ -39,16 +49,19 @@ def lambda_handler(event, context):
     expiration_date = body.get('expiration_date')  # Optional ISO string
 
     # Validate URL
+    if not long_url:
+        return make_response(400, {'error': 'Missing \"long_url\" in request body'})
+
     parsed = urllib.parse.urlparse(long_url)
     if not parsed.scheme in ('http', 'https'):
-        return {'statusCode': 400, 'body': json.dumps({'error': 'Invalid URL'})}
+        return make_response(400, {'error': 'Invalid URL'})
 
     short_code = None
     if custom_alias:
         # Check if alias exists
-        response = mappings_table.get_item(Key={'short_code': custom_alias})
-        if 'Item' in response:
-            return {'statusCode': 409, 'body': json.dumps({'error': 'Custom alias taken'})}
+        db_response = mappings_table.get_item(Key={'short_code': custom_alias})
+        if 'Item' in db_response:
+            return make_response(409, {'error': 'Custom alias taken'})
         short_code = custom_alias
     else:
         ensure_counter_exists()
@@ -81,4 +94,4 @@ def lambda_handler(event, context):
     stage = event["requestContext"].get("stage", "")
     prefix = f"/{stage}" if stage and stage != "$default" else ""
     short_url = f"https://{domain}{prefix}/{short_code}"
-    return {'statusCode': 201, 'body': json.dumps({'short_url': short_url})}
+    return make_response(201, {'short_url': short_url})
