@@ -9,11 +9,12 @@ This project implements a simple yet scalable URL shortener **backend** — perf
 - Infrastructure as Code with AWS CDK (Python)
 - Two DynamoDB tables for URL mappings and atomic counter
 - Lambda functions for shortening URLs and handling redirects
-- API Gateway REST API with `/shorten` and `/{short_code}` endpoints
+- API Gateway REST API with `/urls` (shorten) and `/{short_code}` (redirect) endpoints
+- Static React frontend (Vite) deployed to S3 and served via CloudFront
 - Automatic IAM permissions and resource configuration
 
 **Future work:**
-- Modern web frontend
+- ~~Modern web frontend~~
 - Custom domain with HTTPS
 
 ## Features (Backend)
@@ -115,21 +116,29 @@ https://abc123.execute-api.us-east-1.amazonaws.com/prod
 1. Shorten a URL
 
    ```bash
-   curl -X POST https://abc123.execute-api.../prod/shorten \
-   -H "Content-Type: application/json" \
-   -d '{"url": "https://www.example.com/very/long/url"}'
+   curl -X POST https://abc123.execute-api.us-east-1.amazonaws.com/prod/urls \
+     -H "Content-Type: application/json" \
+     -d '{"long_url": "https://www.example.com/very/long/url"}'
    ```
 
-    Example response:
+   Optional request fields:
 
-    ```JSON
-    {
-      "statusCode": 201
-      "short_code": "k9p2m",
-      "short_url": "https://abc123.execute-api.../prod/k9p2m",
-      "original_url": "https://www.example.com/very/long/url"
-    }
-    ```
+   - `custom_alias` – custom short code (must be unique)
+   - `expiration_date` – ISO-8601 UTC string, e.g. `2026-12-31T23:59:59Z`
+
+   Example success response (HTTP 201 Created):
+
+   ```json
+   {
+     "short_url": "https://abc123.execute-api.us-east-1.amazonaws.com/prod/k9p2m"
+   }
+   ```
+
+   On error, the API returns a JSON body like:
+
+   ```json
+   { "error": "Invalid URL" }
+   ```
 
 2. Redirect (follow short link)
 
@@ -137,9 +146,38 @@ https://abc123.execute-api.us-east-1.amazonaws.com/prod
    curl -L https://abc123.execute-api.us-east-1.amazonaws.com/prod/k9p2m
    ```
 
+## Frontend (React SPA)
+
+The project includes a modern React single-page app (built with Vite) that talks to the `/urls` API.
+
+- **Local development:**
+  - Set `VITE_API_URL` in `frontend/.env` to your deployed API base URL (e.g. `https://abc123.execute-api.us-east-1.amazonaws.com/prod`)
+  - Then:
+
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+
+- **Production build:**
+  - Build the frontend:
+
+    ```bash
+    cd frontend
+    npm run build
+    ```
+
+  - Deploy via CDK (uploads the contents of `frontend/dist` to S3 and serves via CloudFront):
+
+    ```bash
+    cd ..
+    cdk deploy
+    ```
+
 ## Future Work / Roadmap
 
-- [ ] Frontend – Modern SPA (React / Next.js / Svelte / vanilla JS) with URL shortening form and history
+- [x] Frontend – React SPA with URL shortening form
 - [ ] Custom domain – Route 53 + ACM certificate + CloudFront (or API Gateway custom domain)
 - [ ] Click analytics – Add `click_count` and `last_accessed` to UrlMappings
 - [ ] Rate limiting – API Gateway usage plans or Lambda-level throttling
@@ -161,3 +199,4 @@ cdk destroy
 - Counter initialization: Added `ensure_counter_exists()` with conditional put
 - TypeError on Decimal: Cast `counter_value = int(update_response['Attributes']['value'])`
 - Wrong short URL (no stage): Use `event["requestContext"].get("stage")` to build correct prefix
+ - CloudFront / browser cache: After deploying frontend changes or updating API/CORS config, you might still see old behavior due to cached assets or preflight responses; create a CloudFront invalidation (e.g. `/*`) and/or hard-refresh / clear browser cache.
