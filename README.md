@@ -9,7 +9,7 @@ This project implements a simple yet scalable URL shortener **backend** — perf
 - Infrastructure as Code with AWS CDK (Python)
 - Two DynamoDB tables for URL mappings and atomic counter
 - Lambda functions for shortening URLs and handling redirects
-- API Gateway REST API with `/urls` (shorten) and `/{short_code}` (redirect) endpoints
+- API Gateway REST API with `/urls` (shorten) and `/r/{short_code}` (redirect) endpoints
 - Static React frontend (Vite) deployed to S3 and served via CloudFront
 - Automatic IAM permissions and resource configuration
 
@@ -130,9 +130,14 @@ https://abc123.execute-api.us-east-1.amazonaws.com/prod
 
    ```json
    {
-     "short_url": "https://abc123.execute-api.us-east-1.amazonaws.com/prod/k9p2m"
+     "short_url": "https://abc123.execute-api.us-east-1.amazonaws.com/prod/r/k9p2m",
+     "short_code": "k9p2m",
+     "custom_alias": "xyz",
+     "expiration_date": "1970-01-01T00:00:00Z"
    }
    ```
+
+   If a `custom_alias` is provided by the user, then `custom_alias` will be present in the response and will take the place of `short_code`. The `expiration_date` field is included in the response only if an expiration was requested.
 
    On error, the API returns a JSON body like:
 
