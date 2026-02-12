@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import CopyButton from './CopyButton.jsx'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const CUSTOM_DOMAIN = import.meta.env.VITE_CUSTOM_DOMAIN
+const API_URL = CUSTOM_DOMAIN || import.meta.env.VITE_API_URL
 
 export default function ShortenForm() {
   const [longUrl, setLongUrl] = useState('')
@@ -67,7 +68,12 @@ export default function ShortenForm() {
         return
       }
 
-      setShortUrl(data.short_url)
+      if (CUSTOM_DOMAIN) {
+        const code = data.custom_alias ?? data.short_code
+        setShortUrl(`${CUSTOM_DOMAIN}/r/${code}`)
+      } else {
+        setShortUrl(data.short_url)
+      }
     } catch (err) {
       setError(err.message || 'Failed to shorten URL. Check your API URL and network.')
     } finally {
