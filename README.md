@@ -3,6 +3,8 @@
 
 A production-ready, serverless URL shortening service built with **AWS CDK (Python)**, **AWS Lambda**, **Amazon API Gateway**, and **Amazon DynamoDB**.
 
+![Landing Page Screenshot](/app_screenshots/landing-page.png?raw=true)
+
 This project implements a simple yet scalable URL shortener **backend** — perfect for learning serverless architecture, infrastructure as code (IaC), and DynamoDB modeling patterns.
 
 **Currently implemented:**
