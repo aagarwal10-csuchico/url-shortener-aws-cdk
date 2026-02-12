@@ -124,12 +124,17 @@ class UrlShortenerCdkStack(Stack):
         # API Gateway
         # ────────────────────────────────────────────────
 
+        allowed_origins = self.node.try_get_context("allowed_origins") or [
+            "http://localhost:5173",
+            "http://localhost:3000",
+        ]
+
         api = apigw.RestApi(
             self, "UrlShortenerApi",
             deploy_options=apigw.StageOptions(stage_name="prod"),
             default_cors_preflight_options=apigw.CorsOptions(
-                allow_origins=[frontend_origin],
-                allow_methods=["GET", "POST"],
+                allow_origins=allowed_origins,
+                allow_methods=["GET", "POST", "OPTIONS"],
                 allow_headers=["Content-Type", "Authorization"],
             ),
         )
@@ -141,11 +146,31 @@ class UrlShortenerCdkStack(Stack):
             apigw.LambdaIntegration(shorten_lambda),
         )
 
-        # /{short_code} GET
-        short = api.root.add_resource("{short_code}")
+        # /r/{short_code} GET
+        r = api.root.add_resource("r")
+        short = r.add_resource("{short_code}")
         short.add_method(
             "GET",
             apigw.LambdaIntegration(redirect_lambda),
+        )
+
+        api_origin = origins.HttpOrigin(
+            f"{api.rest_api_id}.execute-api.{self.region}.amazonaws.com",
+            origin_path=f"/{api.deployment_stage.stage_name}",
+        )
+
+        distribution.add_behavior(
+            "/urls*",
+            api_origin,
+            allowed_methods=cf.AllowedMethods.ALLOW_ALL,
+            cache_policy=cf.CachePolicy.CACHING_DISABLED,
+        )
+
+        distribution.add_behavior(
+            "/r/*",
+            api_origin,
+            allowed_methods=cf.AllowedMethods.ALLOW_ALL,
+            cache_policy=cf.CachePolicy.CACHING_DISABLED,
         )
 
 
